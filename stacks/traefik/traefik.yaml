@@ -1,0 +1,55 @@
+version: "3.7"
+
+services:
+  traefik:
+    image: traefik:v2.11.24
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command:
+      # Use APENAS a flag para apontar para o arquivo de configuração estática principal
+      - "--configFile=/etc/traefik/traefik.yml" # <<< Caminho onde static.yml será montado DENTRO do contêiner
+
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+         - "traefik.enable=true"
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Necessário para Traefik com provedor Docker
+      # Monte o arquivo de configuração estática
+      - "./config/static.yml:/etc/traefik/traefik.yml:ro" # <<< Montar static.yml
+      # Monte o arquivo de configuração dinâmica (referenciado pelo file provider em static.yml)
+      - "./config/dynamic.yml:/etc/traefik/dynamic.yml:ro" # <<< Montar dynamic.yml
+      # Monte a pasta de certificados
+      - "./certs:/etc/certs:ro" # <<< Montar a pasta certs (Nome dentro do contêiner: /etc/certs)
+      # volume para logs, se estiver usando
+      # - "traefik_logs:/var/log/traefik" # Se definido
+
+    networks:
+      - network_swarm_public # Ou o nome da sua rede overlay
+
+    ports:
+      - target: 80 # Porta interna do contêiner
+        published: 80 # Porta na máquina via routing mesh
+        mode: host
+      - target: 443 # Porta interna do contêiner
+        published: 443 # Porta na máquina via routing mesh
+        mode: host
+      - target: 8080 # Porta interna do dashboard API
+        published: 8080 # Porta na máquina (para debug local)
+        mode: host
+
+# Definição de volumes (se external: true) - verifique os nomes
+volumes:
+  vol_shared: 
+    external: true 
+    name: volume_swarm_shared
+  # traefik_logs: external: true name: traefik_logs # Se definido
+
+# Definição de redes (se external: true) - verifique os nomes
+networks:
+  network_swarm_public: 
+    external: true 
+    name: network_swarm_public
+  # ingress: NÃO defina ingress aqui, é gerenciada pelo Swarm
