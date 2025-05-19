@@ -1,0 +1,60 @@
+version: "3.7"
+
+services:
+
+  agent:
+    image: portainer/agent:2.30.0-alpine
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.platform.os == linux]
+
+  portainer:
+    image: portainer/portainer-ce:2.30.0-alpine
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    volumes:
+      - portainer_data:/data
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_swarm_public"
+        - "traefik.http.routers.portainer.rule=Host(`painel.codesefaz.local`)" # <<< Muda para o domínio local
+        - "traefik.http.routers.portainer.entrypoints=websecure"
+
+        # - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver" # <<< REMOVER ESTA LINHA no localhost
+        - "traefik.http.routers.portainer.tls=true" # <<< ADICIONAR ESTA LINHA no localhost
+
+        - "traefik.http.routers.portainer.priority=1"
+        - "traefik.http.routers.portainer.service=portainer"
+        - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+    ports:
+      - target: 9000 # Porta interna do Portainer para HTTPS (padrão CE)
+        published: 9000 # Porta na sua máquina host (escolha uma porta livre, 9443 é comum)
+        mode: host # Publicar diretamente na interface do host via routing mesh
+    # Se quiser HTTP (não recomendado), publique a porta 9000:
+    # - target: 9000 ; published: 9000 ; mode: host
+    # --- FIM ADICIONAR PUBLICAÇÃO DE PORTAS ---
+
+networks:
+  network_swarm_public:
+    external: true
+    attachable: true
+    name: network_swarm_public
+
+volumes:
+  portainer_data:
+    external: true
+    name: portainer_data
+
+
