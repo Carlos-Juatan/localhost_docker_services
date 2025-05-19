@@ -34,5 +34,3 @@ entryPoints:
     #   defaultCertificate:
     #     certFile: "/etc/certs/codesefaz.local+9.pem" # Caminho dentro do contêiner
     #     keyFile: "/etc/certs/codesefaz.local+9-key.pem" # Caminho dentro do contêiner
-
-# ... (restante do static.yml)

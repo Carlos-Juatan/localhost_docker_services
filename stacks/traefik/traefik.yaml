@@ -12,8 +12,6 @@ services:
       placement:
         constraints:
           - node.role == manager
-      labels:
-         - "traefik.enable=true"
 
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro" # Necessário para Traefik com provedor Docker
@@ -52,4 +50,3 @@ networks:
   network_swarm_public: 
     external: true 
     name: network_swarm_public
-  # ingress: NÃO defina ingress aqui, é gerenciada pelo Swarm

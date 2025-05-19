@@ -1,7 +1,7 @@
 http:
   routers:
     traefik:
-      rule: "Host(`traefik.codesefaz.local`)"
+      rule: "Host(`dashboard.codesefaz.local`)"
       service: "api@internal"
       tls:
         domains:
