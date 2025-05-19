@@ -1,0 +1,71 @@
+version: "3.7"
+
+services:
+  # Define o serviço do Baserow
+  baserow:
+    # Usa a imagem do Baserow no Docker Hub
+    image: baserow/baserow:latest
+    # Define o hotname do container
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    # Define a rede que o container vai usar
+    networks:
+      - network_swarm_public
+    # Define o volume que irá armazenar os dados do Baserow
+    volumes:
+      - baserow_data:/baserow/data
+    # Define as variaveis de ambiente
+    environment:
+      # Define a URL do Baserow para a Aplicação
+      - BASEROW_PUBLIC_URL=https://brow.codesefaz.local
+      # Configura o Hostname do Banco de Dados
+      - DATABASE_HOST=postgres
+      # Define o Nome do Banco de Dados
+      - DATABASE_NAME=baserow
+      # Define o Usuário do Banco de Dados
+      - DATABASE_USER=postgres
+      # Define a Senha do Banco de Dados
+      - DATABASE_PASSWORD=zmPg6ph0Wnoh4YMkbuct
+      # Se definido como “true”, o Baserow sincronizará automaticamente todos os modelos Baserow integrados.
+      - BASEROW_TRIGGER_SYNC_TEMPLATES_AFTER_MIGRATION=false
+      # O número máximo de linhas que podem ser solicitadas de uma só vez.
+      - BASEROW_ROW_PAGE_SIZE_LIMIT=200
+      # Controla quantas linhas podem ser criadas, excluídas ou atualizadas de uma só vez usando os endpoints do lote.
+      - BATCH_ROWS_SIZE_LIMIT=200
+    deploy:
+      # Define o modo de deploy do container
+      mode: replicated
+      # Define o numero de replicas do container (sempre 1)
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+          # - node.hostname == worker1
+      resources:
+        limits:
+          # Define a quantidade de CPU para o Baserow para evitar travamento do Host
+          cpus: "1"
+          # Define a quantidade de RAM para o Baserow para evitar travamento do Host
+          memory: 1024M
+      labels:
+        # Habilita o traefik para o serviço
+        - traefik.enable=true
+        # Define o dominio do Baserow
+        - traefik.http.routers.baserow.rule=Host(`brow.codesefaz.local`)
+        # certificado TSL
+        - traefik.http.routers.baserow.tls=true
+        # Define o tipo de entrada do Baserow para HTTPS
+        - traefik.http.routers.baserow.entrypoints=websecure
+        # Define o nome do serviço no traefik
+        - traefik.http.routers.baserow.service=baserow
+        # Define a porta do Baserow
+        - traefik.http.services.baserow.loadbalancer.server.port=80
+
+volumes:
+  baserow_data:
+    external: true
+    name: baserow_data
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public
