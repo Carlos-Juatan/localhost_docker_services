@@ -1,0 +1,14 @@
+# traefik_dynamic_config.yml
+tls:
+  certificates:
+    - certFile: "/certs/codesefaz.local+9.pem"
+      keyFile: "/certs/codesefaz.local+9-key.pem"
+
+http:
+  routers:
+    dashboard:
+      rule: "Host(`dashboard.codesefaz.local`)"
+      service: "api@internal"
+      entryPoints:
+        - "websecure"
+      tls: {}

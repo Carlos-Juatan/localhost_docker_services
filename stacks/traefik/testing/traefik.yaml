@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.10 # Use a versão mais recente e estável do Traefik 2.x
+    command:
+      - --log.level=DEBUG # Aumente para DEBUG para depuração
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.swarmmode=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.file.directory=/etc/traefik/dynamic # Caminho onde o Traefik buscará a configuração dinâmica
+      - --providers.file.watch=true # Recarregar a configuração dinâmica automaticamente
+    ports:
+      - "80:80"   # Redireciona HTTP para HTTPS
+      - "443:443" # Para HTTPS
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/certs:ro # Monte a pasta de certificados gerada pelo mkcert
+      - ./dynamic.yml:/etc/traefik/dynamic/dynamic.yml:ro # Monte a configuração dinâmica
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: global # Garante que o Traefik seja executado em todos os nós do Swarm (ou em um único nó no localhost)
+      placement:
+        constraints:
+          - node.role == manager # Opcional: Garante que o Traefik rode no nó manager
+      labels:
+        # Redirecionamento HTTP para HTTPS (Traefik 2.x)
+        - "traefik.http.routers.http-catchall.entrypoints=web"
+        - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
+        - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public
+    # attachable: true # <<< Útil para debug, pode adicionar se quiser
