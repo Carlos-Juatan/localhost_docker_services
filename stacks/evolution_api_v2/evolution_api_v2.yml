@@ -141,11 +141,13 @@ services:
       # Método não Recomendado. Usar fila com RabbitMQ ########
       #########################################################
       # Habilita a conexão com o Webhook Global
-      - WEBHOOK_GLOBAL_ENABLED=false
+      - WEBHOOK_GLOBAL_ENABLED=true
       # Configura a URL do Webhook Global
-      - WEBHOOK_GLOBAL_URL=''
+      - WEBHOOK_GLOBAL_URL='https://webhooks.codesefaz.local'
       # Configura os Eventos do Webhook Global
-      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
+      # Configura os eventos do Webhook Global
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
       #########################################################
       #########################################################
       # Configurações do Typebot ##############################

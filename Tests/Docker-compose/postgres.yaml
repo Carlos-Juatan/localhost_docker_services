@@ -1,0 +1,47 @@
+version: '3.3'
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:16-alpine
+    networks:
+      - evolution-net
+    command: ["postgres", "-c", "max_connections=1000"]
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=PASSWORD
+      - POSTGRES_DB=evolution # <--- Adicione ou confirme
+      - POSTGRES_USER=postgres # <--- Adicione ou confirme
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - 5432
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    depends_on:
+      postgres:
+        condition: service_started 
+    networks:
+      - evolution-net
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=carlosjuatan.workplace@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=8QgBLp5YT8vGTUL689Ic  
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - 4000:80
+    links:
+      - postgres
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge

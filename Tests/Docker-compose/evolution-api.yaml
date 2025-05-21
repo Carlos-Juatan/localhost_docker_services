@@ -1,0 +1,31 @@
+version: '3.9'
+services:
+  evolution-api:
+    container_name: evolution_api
+    image: atendai/evolution-api:v2.2.3
+    depends_on:
+      postgres:
+        condition: service_started 
+      rabbitmq:
+        condition: service_started 
+      redis:
+        condition: service_started
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks: # <--- Adicione esta seção
+      - evolution-net # <--- Conecte-o à sua rede compartilhada
+
+volumes:
+  evolution_instances:
+
+# A definição da rede (abaixo) só precisa estar em um dos seus arquivos YAML que você passa no docker-compose -f
+# Se você já tem ela no postgres.yaml, pode omitir aqui, mas ter em ambos não causa problema
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge
