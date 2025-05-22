@@ -4,7 +4,7 @@ services:
   redis:
     image: redis:7
     networks:
-      - evolution-net
+      - network_compose_public
     container_name: redis
     command: >
       redis-server --port 6379 --appendonly yes
@@ -18,6 +18,6 @@ volumes:
 
 
 networks:
-  evolution-net:
-    name: evolution-net
+  network_compose_public:
+    name: network_compose_public
     driver: bridge

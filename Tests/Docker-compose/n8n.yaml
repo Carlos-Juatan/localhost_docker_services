@@ -7,7 +7,7 @@ services:
     image: n8nio/n8n:1.94.0 # Ou uma versão específica, ex: n8n/n8n:1.45.0
     restart: always
     networks:
-      - evolution-net # Conecte-o à sua rede compartilhada para comunicação interna
+      - network_compose_public # Conecte-o à sua rede compartilhada para comunicação interna
     environment:
       # A URL base que o n8n usará para gerar links de webhook e outras URLs.
       # Se você vai acessar por http://localhost:5678, configure assim:
@@ -31,5 +31,6 @@ volumes:
   n8n_data:
 
 networks:
-  evolution-net:
+  network_compose_public:
+    name: network_compose_public
     external: true # Indica que esta rede já existe e é gerenciada externamente

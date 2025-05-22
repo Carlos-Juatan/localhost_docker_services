@@ -18,7 +18,7 @@ services:
     volumes:
       - evolution_instances:/evolution/instances
     networks: # <--- Adicione esta seção
-      - evolution-net # <--- Conecte-o à sua rede compartilhada
+      - network_compose_public # <--- Conecte-o à sua rede compartilhada
 
 volumes:
   evolution_instances:
@@ -26,6 +26,6 @@ volumes:
 # A definição da rede (abaixo) só precisa estar em um dos seus arquivos YAML que você passa no docker-compose -f
 # Se você já tem ela no postgres.yaml, pode omitir aqui, mas ter em ambos não causa problema
 networks:
-  evolution-net:
-    name: evolution-net
+  network_compose_public:
+    name: network_compose_public
     driver: bridge
