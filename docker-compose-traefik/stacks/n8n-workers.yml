@@ -1,33 +1,26 @@
 version: "3.7"
-# Definição dos Serviços
-services:
-  # Definição do Serviço do Worker
-  n8n_worker:
-    # imagem do docker
-    image: n8nio/n8n:latest
-    # Define o hotname do container
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    # comando padrão para subir o servidor web
-    command: worker --concurrency=10
-    # configura a rede do serviço
-    networks:
-      - network_swarm_public
-    # configura as variáveis de ambiente
-    environment:
 
+services:
+  n8n_worker:
+    image: n8nio/n8n:1.94.0
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    restart: unless-stopped
+    command: worker --concurrency=10 # comando padrão para subir o servidor web
+    networks:
+      network_compose_public:
+        aliases:
+          # O alias é útil para comunicação interna entre containers,
+          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
+          - workflows.${DOCKER_BASE_URL}
+    environment:
+      
     # Configura o Modo de Deploy da Aplicação
     deploy:
       # O editor será executado no modo de replicação
       mode: replicated
       # Vamos ter apenas uma instância do editor
       replicas: 1
-      # Configura o local de execução
-      placement:
-        # Você pode rodar o Editor no Manager mesmo pois usa poucos recursos
-        constraints:
-          - node.role == manager
-          # - node.hostname == worker1
-          # - node.labels.app == webhooks # nome do label: app, valor do label: webhooks
+      # Limitação
       resources:
         # Definição dos Limites de Recursos deste Serviço
         limits:
@@ -46,6 +39,6 @@ services:
         # Configura a ação em caso de falha
         failure_action: rollback
 networks:
-  network_swarm_public:
-    name: network_swarm_public
+  network_compose_public:
+    name: network_compose_public
     external: true

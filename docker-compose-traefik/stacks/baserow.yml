@@ -1,0 +1,71 @@
+version: '3.9' # Mantendo 3.9, mas 3.7 também funciona perfeitamente
+
+services:
+  baserow:
+    image: baserow/baserow:1.24.1
+    container_name: baserow
+    restart: unless-stopped # Garante que o Baserow reinicie automaticamente
+    networks:
+      network_compose_public:
+        aliases:
+          # O alias é útil para comunicação interna entre containers,
+          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
+          - brow.${DOCKER_BASE_URL}
+    environment:
+      # --- Configurações de URL Pública para o Baserow ---
+      # Crucial para o Baserow gerar links corretos e lidar com redirecionamentos.
+      # Usamos a variável de ambiente DOCKER_BASE_URL, que deve ser definida no seu .env
+      - BASEROW_PUBLIC_URL=https://brow.${DOCKER_BASE_URL}
+
+      # --- Configurações do Banco de Dados ---
+      # Nome do serviço PostgreSQL no Docker Compose (deve ser o nome do seu serviço Postgres)
+      - DATABASE_HOST=postgres
+      - DATABASE_NAME=baserow_db
+      - DATABASE_USER=baserow_user
+      # Use uma variável de ambiente para a senha do DB para segurança.
+      # Ex: crie um .env com `BASEROW_DB_PASSWORD=SENHA_FORTE_AQUI`
+      - DATABASE_PASSWORD=${BASEROW_DB_PASSWORD}
+      - DATABASE_PORT=5432 # Porta padrão, bom especificar para clareza
+
+      # --- Otimizações e Outras Configurações do Baserow ---
+      - BASEROW_TRIGGER_SYNC_TEMPLATES_AFTER_MIGRATION=false
+      - BASEROW_ROW_PAGE_SIZE_LIMIT=200
+      - BATCH_ROWS_SIZE_LIMIT=200
+      # Adicione outras variáveis de ambiente do Baserow conforme sua necessidade.
+      # Por exemplo, para ajustar o tamanho máximo de upload de arquivos:
+      # - BASEROW_FILE_UPLOAD_SIZE_LIMIT_MB=20 # 20MB
+    volumes:
+      - baserow_data:/baserow/data # Volume persistente para os dados do Baserow
+    labels:
+      # --- Configurações Traefik para Baserow ---
+      - "traefik.enable=true" # Habilita o Traefik para este serviço
+      - "traefik.docker.network=network_compose_public" # Traefik deve se comunicar nesta rede
+      
+      # Define o dominio do Baserow
+      - "traefik.http.routers.baserow.rule=Host(`brow.${DOCKER_BASE_URL}`)"
+      # Define o tipo de entrada do Baserow para HTTPS
+      - "traefik.http.routers.baserow.entrypoints=websecure"
+      # Define o certificado do Baserow
+      - "traefik.http.routers.baserow.tls=true" # Habilita TLS para este roteador
+
+      # Define o nome do serviço no traefik
+      - traefik.http.routers.baserow.service=baserow
+      # Define a porta do Baserow
+      - traefik.http.services.baserow.loadbalancer.server.port=80
+
+      # --- (Opcional) Middleware para Reescrever o Cabeçalho Host ---
+      # O Baserow pode ser sensível ao cabeçalho Host. Se você tiver problemas,
+      # este middleware pode ajudar, alterando o Host de 'baserow.<DOCKER_BASE_URL>' para 'baserow'
+      # antes de a requisição chegar ao container Baserow.
+      # Descomente e teste se encontrar problemas.
+      #- "traefik.http.routers.baserow.middlewares=baserow-host-rewrite@docker"
+      #- "traefik.http.middlewares.baserow-host-rewrite.headers.customrequestheaders.Host=baserow"
+
+volumes:
+  baserow_data:
+    name: baserow_data # Nome do volume para consistência
+
+networks:
+  network_compose_public:
+    name: network_compose_public 
+    driver: bridge

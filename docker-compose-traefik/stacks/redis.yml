@@ -1,0 +1,21 @@
+version: "3.7"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: "redis"
+    command: redis-server --appendonly yes --port 6379
+    restart: unless-stopped
+    networks:
+      network_compose_public:
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
+    name: redis_data
+
+networks:
+  network_compose_public:
+    name: network_compose_public 
+    driver: bridge 

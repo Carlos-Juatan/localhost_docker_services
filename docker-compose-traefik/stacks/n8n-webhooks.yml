@@ -1,0 +1,65 @@
+version: "3.7"
+
+services:
+  n8n_webhook:
+    image: n8nio/n8n:1.94.0
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    restart: unless-stopped
+    command: webhook # comando padrão para subir o servidor web
+    networks:
+      network_compose_public:
+        aliases:
+          # O alias é útil para comunicação interna entre containers,
+          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
+          - webhooks.${DOCKER_BASE_URL}
+    environment:
+      
+    # Configura o Modo de Deploy da Aplicação
+    deploy:
+      # O editor será executado no modo de replicação
+      mode: replicated
+      # Vamos ter apenas uma instância do editor
+      replicas: 2
+      # Configura o local de execução
+      resources:
+        # Definição dos Limites de Recursos deste Serviço
+        limits:
+          # Define a quantidade de CPU para o N8N para evitar travamento do Host
+          cpus: "1"
+          # Define a quantidade de RAM para o N8N para evitar travamento do Host
+          memory: 1024M
+      # Configura o modo de atualização do serviço
+      update_config:
+        # Configura o paralelismo de atualização
+        parallelism: 1
+        # Configura o tempo de espera entre as atualizações
+        delay: 30s
+        # Configura a ação em caso de falha
+        order: start-first
+        # Configura a ação em caso de falha
+        failure_action: rollback
+    # Define os Labels do Serviço
+    labels:
+      # Configura o Roteamento do Traefik
+      - traefik.enable=true
+      # Traefik deve se comunicar nesta rede
+      - traefik.docker.network=network_compose_public
+
+      # Define o enderço do Webhook do N8N
+      - traefik.http.routers.n8n_webhook.rule=Host(`webhooks.${DOCKER_BASE_URL}`)
+      # Redireciona o endereço para HTTPS
+      - traefik.http.routers.n8n_webhook.entrypoints=websecure
+      # Define o certificado SSL
+      - traefik.http.routers.n8n_webhook.tls=true
+
+      # Define o serviço do Webhook
+      - traefik.http.routers.n8n_webhook.service=n8n_webhook
+      # Define a porta do serviço do Webhook
+      - traefik.http.services.n8n_webhook.loadbalancer.server.port=5678
+      # Define o uso do Host Header
+      - traefik.http.services.n8n_webhook.loadbalancer.passHostHeader=true
+
+networks:
+  network_compose_public:
+    name: network_compose_public
+    external: true

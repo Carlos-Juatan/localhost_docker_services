@@ -1,0 +1,108 @@
+###############################################################################
+#
+# Stack de Deploy da Evolution API v2 (Adaptado para Docker Compose Solo)
+# Mais configurações no Github:
+# https://github.com/EvolutionAPI/evolution-api/blob/v2.0.0/Docker/.env.example
+#
+# Imagem do Docker
+# https://hub.docker.com/r/atendai/evolution-api
+#
+###############################################################################
+
+version: "3.7" 
+services:
+  evolution_v1:
+    image: atendai/evolution-api:v1.8.7
+    container_name: "evolution_v1"
+    restart: unless-stopped
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      network_compose_public:
+        aliases:
+          # O alias é útil para comunicação interna entre containers,
+          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
+          - evo.${DOCKER_BASE_URL}
+    environment:
+      # Habilitar o cache Redis
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/6 # URI de conexão com o Redis
+      - CACHE_REDIS_PREFIX_KEY=evolution_v1 # Prefixo para diferenciar os dados de diferentes instalações que utilizam o mesmo Redis
+      - CACHE_REDIS_SAVE_INSTANCES=true # Habilitar para salvar as informações de conexão no Redis ao invés do banco de dados
+      - CACHE_LOCAL_ENABLED=false # Habilitar o cache local
+
+      ######################## variáveis para o postgresql
+      - DATABASE_ENABLED=false
+      - DATABASE_PROVIDER=postgresql # Escolher o provedor do banco de dados: postgresql ou mysql
+      - DATABASE_CONNECTION_URI=postgresql://${postgres_evolution_user}:${postgres_evolution_password}@postgres:5432/${postgres_evolution_db} # URI de conexão com o banco de dados
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution_v1 # Nome do cliente para a conexão do banco de dados
+
+      # Escolha os dados que você deseja salvar no banco de dados da aplicação
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - DATABASE_SAVE_DATA_LABELS=true
+      - DATABASE_SAVE_DATA_HISTORIC=true
+
+      ######################## variáveis para o MongoDB
+      #- DATABASE_ENABLED=true
+      #- DATABASE_PROVIDER=mongodb # <--- Defina MongoDB como o provedor principal!
+      #- DATABASE_CONNECTION_URI=mongodb://adminLocal:S9Cj6K3tRNUtkdnVrySn@mongodb:27017/evolution-whatsapp-api?authSource=admin # Conexão com o MongoDB
+      #- DATABASE_CONNECTION_CLIENT_NAME=evolution_exchange # Nome do cliente, pode ser mantido
+
+      #- MONGODB_URI=mongodb://adminLocal:S9Cj6K3tRNUtkdnVrySn@mongodb:27017/amontoa-server?authSource=admin
+
+      # --- Configurações para QR Code e UI (CRÍTICO para uso no navegador) ---
+      #HOST_URL=http://localhost:8080
+      #WEBSOCKET_HOST_URL=ws://localhost:8080
+      - WEBSOCKET_ENABLED=true
+
+      # ATENÇÃO: Ajuste este URL para o seu domínio local!
+      - SERVER_URL=https://evo.${DOCKER_BASE_URL} # Usando a variável do .env
+      # Habilita a remoção automática da instâncias se não houver conexão
+      #- DEL_INSTANCE=false
+      ## Habilita o Provider Local de Cache (desabilitado por padrão)
+      #- PROVIDER_ENABLED=false
+      #- PROVIDER_HOST=127.0.0.1
+      #- PROVIDER_PORT=5656
+      #- PROVIDER_PREFIX=evolution_v1
+      ## Configura o Cliente da Evolution API
+      #- CONFIG_SESSION_PHONE_CLIENT=Windows
+      #- CONFIG_SESSION_PHONE_NAME=Chrome
+      ## Configura a Versão do Cliente do WhatsApp da Evolution API
+      #- CONFIG_SESSION_PHONE_VERSION=2.3000.1015901307
+      ## Informa a quantidade de QRCODE que será gerado
+      #- QRCODE_LIMIT=30
+      ## Informa o idioma da Evolution
+      #- LANGUAGE=pt-BR
+
+      # Habilitar o uso do evolution-api
+      - AUTHENTICATION_API_KEY=${GLOBAL_API_KEY} # Preencha com sua chave de API
+      # Configura a exibição da Chave de Autenticação na Listagem de Instâncias
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+    labels:
+      - traefik.enable=true # Habilita o Traefik para descobrir e rotear este serviço
+      - traefik.docker.network=network_compose_public # Traefik deve se comunicar nesta rede
+
+
+      # Roteador HTTPS, Redirecionador e Certificado TLS
+      - traefik.http.routers.evolution_v1.rule=Host(`evo.${DOCKER_BASE_URL}`) # Define o enderço do evolution_v1
+      - traefik.http.routers.evolution_v1.entrypoints=websecure # Redireciona o endereço para HTTPS
+      - traefik.http.routers.evolution_v1.tls=true # Define o certificado SSL
+
+
+      # Serviço de balanceamento de carga
+      - traefik.http.routers.evolution_v1.service=evolution_v1 # Define o serviço do evolution_v1
+      - traefik.http.services.evolution_v1.loadbalancer.server.port=8080 # Define a porta do serviço do evolution_v1
+      - traefik.http.services.evolution_v1.loadbalancer.passHostHeader=true # Define o uso do Host Header
+
+volumes:
+  evolution_instances:
+    name: evolution_v1_data 
+
+networks:
+  network_compose_public:
+    name: network_compose_public
+    driver: bridge

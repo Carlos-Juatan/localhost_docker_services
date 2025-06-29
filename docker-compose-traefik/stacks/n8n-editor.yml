@@ -1,18 +1,17 @@
-version: "3.7"
-# Definição dos Serviços
+version: '3.7'
+
 services:
-  # Definição do Serviço do Editor
   n8n_editor:
-    # imagem do docker
-    image: n8nio/n8n:latest
-    # Define o hotname do container
+    image: n8nio/n8n:1.94.0
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    # comando padrão para subir o servidor web do editor
-    command: start
-    # configura a rede do serviço
+    restart: unless-stopped
+    command: start # Inicia o serviço do editor
     networks:
-      - network_swarm_public
-    # configura as variáveis de ambiente
+      network_compose_public:
+        aliases:
+          # O alias é útil para comunicação interna entre containers,
+          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
+          - workflows.${DOCKER_BASE_URL}
     environment:
       #########################################################
       # Documentação de Variáveis de Ambiente do N8N ##########
@@ -25,11 +24,11 @@ services:
       #########################################################
       #########################################################
       # Gere uma nova chave aqui https://www.avast.com/random-password-generator#mac
-      - N8N_ENCRYPTION_KEY=r3djGX2vPoeL9zKL
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       # Configura o ambiente de execução do N8N
       - NODE_ENV=production
       # Habilita a Página de Métricas Públicas do N8N
-      - N8N_METRICS=true
+      - N8N_METRICS=false
       # Habilita o envio de diagnósticos para o N8N
       - N8N_DIAGNOSTICS_ENABLED=false
       # Configura o Tamanho do Payload aceito pelo N8N (em MB)
@@ -61,9 +60,9 @@ services:
       # Configura a Porta do Banco de Dados
       - DB_POSTGRESDB_PORT=5432
       # Configura o Usuário do Banco de Dados
-      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_USER=n8n_user
       # Configura a Senha do Banco de Dados
-      - DB_POSTGRESDB_PASSWORD=SENHA
+      - DB_POSTGRESDB_PASSWORD=${DB_POSTGRESDB_PASSWORD}
       #########################################################
       #########################################################
       #########################################################
@@ -74,14 +73,14 @@ services:
       # Define a Porta http para o N8N (padrão: 5678)
       - N8N_PORT=5678
       # Configura o Host do Editor do N8N
-      - N8N_HOST=workflows.agenciasynca.com.br
+      - N8N_HOST=workflows.${DOCKER_BASE_URL}
       # Configura o Endereço competo do Editor (tem que deixar / no final)
-      - N8N_EDITOR_BASE_URL=https://workflows.agenciasynca.com.br/
+      - N8N_EDITOR_BASE_URL=https://workflows.${DOCKER_BASE_URL}/
       # Força o uso de SSL nas URL internas do N8N
       - N8N_PROTOCOL=https
       # Configura o Endereço do Webhook
       # Pode ser subdomínio ou outro domínio
-      - WEBHOOK_URL=https://webhooks.agenciasynca.com.br/
+      - WEBHOOK_URL=https://webhooks.${DOCKER_BASE_URL}/
       # Configura o Caminho do Webhook
       - N8N_ENDPOINT_WEBHOOK=webhook
       #########################################################
@@ -112,17 +111,17 @@ services:
       #########################################################
       #########################################################
       # Habilita as notificações de novas versões do N8N
-      - N8N_VERSION_NOTIFICATIONS_ENABLED=true
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=false
       # Configura o N8N para exibir a documentação da API Pública
-      - N8N_PUBLIC_API_SWAGGERUI_DISABLED=false
+      - N8N_PUBLIC_API_SWAGGERUI_DISABLED=true
       # Habilita os Templates na Interface do N8N
-      - N8N_TEMPLATES_ENABLED=true
+      - N8N_TEMPLATES_ENABLED=false
       # Habilita dicas de integração ao criar um novo fluxo de trabalho (true = desabilitado)
       - N8N_ONBOARDING_FLOW_DISABLED=true
       # Desabilita o recurso de tags de workflows (false = habilitado)
       - N8N_WORKFLOW_TAGS_DISABLED=false
       # Oculta a Tela de Informações de Uso do N8N
-      - N8N_HIDE_USAGE_PAGE=false
+      - N8N_HIDE_USAGE_PAGE=true
       #########################################################
       #########################################################
       #########################################################
@@ -134,7 +133,7 @@ services:
       # Configura a limpeza dos dados de execução
       - EXECUTIONS_DATA_PRUNE=true
       # Configura o tempo máximo de armazenamento dos dados de execução
-      - EXECUTIONS_DATA_MAX_AGE=336 # 2 semanas
+      - EXECUTIONS_DATA_MAX_AGE=336 # 2 semanas (em horas)
       # Com que frequência (minutos) os dados de execução devem ser excluídos permanentemente.
       - EXECUTIONS_DATA_PRUNE_HARD_DELETE_INTERVAL=15
       # Com que frequência (minutos) os dados de execução devem ser excluídos de forma reversível.
@@ -188,19 +187,19 @@ services:
       #########################################################
       #########################################################
       # Modo de envio de e-mail
-      - N8N_EMAIL_MODE=smtp
-      # Configura o Host do SMTP
-      - N8N_SMTP_HOST=smtp.google.com
-      # Configura a Porta do SMTP
-      - N8N_SMTP_PORT=25
-      # Configura o Usuário do SMTP
-      - N8N_SMTP_USER=USER
-      # Configura a Senha do SMTP
-      - N8N_SMTP_PASS=SENHA
-      # Configura o E-mail de envio
-      - N8N_SMTP_SENDER=contato@promovaweb.com
-      # Configura o SSL do SMTP
-      - N8N_SMTP_SSL=false
+      #- N8N_EMAIL_MODE=smtp
+      ## Configura o Host do SMTP
+      #- N8N_SMTP_HOST=smtp.google.com
+      ## Configura a Porta do SMTP
+      #- N8N_SMTP_PORT=25
+      ## Configura o Usuário do SMTP
+      #- N8N_SMTP_USER=${N8N_SMTP_USER}
+      ## Configura a Senha do SMTP
+      #- N8N_SMTP_PASS=${N8N_SMTP_PASS}
+      ## Configura o E-mail de envio
+      #- N8N_SMTP_SENDER=contato@promovaweb.com
+      ## Configura o SSL do SMTP
+      #- N8N_SMTP_SSL=false
       # Report de Erros Sentry
       # - N8N_SENTRY_DSN=
       # - N8N_FRONTEND_SENTRY_DSN=
@@ -210,13 +209,6 @@ services:
       mode: replicated
       # Vamos ter apenas uma instância do editor
       replicas: 1
-      # Configura o local de execução
-      placement:
-        constraints:
-          # Você pode rodar o Editor no Manager mesmo pois usa poucos recursos
-          - node.role == manager
-          # - node.hostname == worker1
-          # - node.labels.app == http # nome do label: app, valor do label: http
       # Limitação
       resources:
         # Definição dos Limites de Recursos deste Serviço
@@ -225,22 +217,6 @@ services:
           cpus: "1"
           # Define a quantidade de RAM para o N8N para evitar travamento do Host
           memory: 1024M
-      # Define os Labels do Serviço
-      labels:
-        # Configura o Roteamento do Traefik
-        - traefik.enable=true
-        # Define o enderço do Editor do N8N
-        - traefik.http.routers.n8n_editor.rule=Host(`workflows.agenciasynca.com.br`)
-        # Redireciona o endereço para HTTPS
-        - traefik.http.routers.n8n_editor.entrypoints=websecure
-        # Define o certificado SSL
-        - traefik.http.routers.n8n_editor.tls.certresolver=letsencryptresolver
-        # Define o serviço do Editor
-        - traefik.http.routers.n8n_editor.service=n8n_editor
-        # Define a porta do serviço do Editor
-        - traefik.http.services.n8n_editor.loadbalancer.server.port=5678
-        # Define o uso do Host Header
-        - traefik.http.services.n8n_editor.loadbalancer.passHostHeader=true
       # Configura o modo de atualização do serviço
       update_config:
         # Configura o paralelismo de atualização
@@ -251,7 +227,28 @@ services:
         order: start-first
         # Configura a ação em caso de falha
         failure_action: rollback
+    # Define os Labels do Serviço
+    labels:
+      # Configura o Roteamento do Traefik
+      - traefik.enable=true
+      # Traefik deve se comunicar nesta rede
+      - traefik.docker.network=network_compose_public
+
+      # Define o enderço do Editor do N8N
+      - traefik.http.routers.n8n_editor.rule=Host(`workflows.${DOCKER_BASE_URL}`)
+      # Redireciona o endereço para HTTPS
+      - traefik.http.routers.n8n_editor.entrypoints=websecure
+      # Define o certificado SSL
+      - traefik.http.routers.n8n_editor.tls=true
+
+      # Define o serviço do Editor
+      - traefik.http.routers.n8n_editor.service=n8n_editor
+      # Define a porta do serviço do Editor
+      - traefik.http.services.n8n_editor.loadbalancer.server.port=5678
+      # Define o uso do Host Header
+      - traefik.http.services.n8n_editor.loadbalancer.passHostHeader=true
+
 networks:
-  network_swarm_public:
-    name: network_swarm_public
+  network_compose_public:
+    name: network_compose_public
     external: true

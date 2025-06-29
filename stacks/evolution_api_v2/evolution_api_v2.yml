@@ -2,10 +2,10 @@
 #
 # Stack de Deploy da Evolution API v2
 # Mais configurações no Github:
-# https://github.com/EvolutionAPI/evolution-api/blob/v2.0.0/Docker/.env.example
+# https://github.com/EvolutionAPI/evolution-api/blob/main/.env.example
 #
 # Imagem do Docker
-# https://hub.docker.com/r/atendai/evolution-api
+# https://hub.docker.com/r/evoapicloud/evolution-api
 #
 ###############################################################################
 
@@ -15,7 +15,7 @@ services:
   # Define o Serviço da Evolution v2
   evolution_v2:
     # Define a imagem da Evolution API
-    image: atendai/evolution-api:v2.2.3
+    image: evoapicloud/evolution-api:v2.3.0
     # Define o hostname do container
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     # Define os volumes da evolution API
@@ -32,7 +32,7 @@ services:
       #########################################################
       #########################################################
       # Configura o Endereço da Evolution
-      - SERVER_URL=https://evo.codesefaz.local
+      - SERVER_URL=https://evo.agenciasynca.com.br
       # Habilita a remoção automática da instâncias se não houver conexão
       - DEL_INSTANCE=false
       # Habilita o Provider Local de Cache (desabilitado por padrão)
@@ -44,7 +44,8 @@ services:
       - CONFIG_SESSION_PHONE_CLIENT=Windows
       - CONFIG_SESSION_PHONE_NAME=Chrome
       # Configura a Versão do Cliente do WhatsApp da Evolution API
-      - CONFIG_SESSION_PHONE_VERSION=2.3000.1015901307
+      # Deixe comentado para obter a versão atualizada automaticamente
+      # - CONFIG_SESSION_PHONE_VERSION=2.3000.1024080502
       # Informa a quantidade de QRCODE que será gerado
       - QRCODE_LIMIT=30
       # Informa o idioma da Evolution
@@ -55,7 +56,9 @@ services:
       #########################################################
       #########################################################
       # Configura a Chave de Autenticação da API
-      - AUTHENTICATION_API_KEY=uQKFOUgnAwx13mjmRsM8
+      # Para gerar a sua key, acesse https://www.uuidgenerator.net/
+      # e use o código que gerado na dela
+      - AUTHENTICATION_API_KEY=sua-key-gerada
       # Configura a exibição da Chave de Autenticação na Listagem de Instâncias
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       #########################################################
@@ -68,23 +71,30 @@ services:
       # Configura o Provider do Banco de Dados
       - DATABASE_PROVIDER=postgresql
       # Configura o Host do Banco de Dados
-      - DATABASE_CONNECTION_URI=postgresql://postgres:zmPg6ph0Wnoh4YMkbuct@postgres:5432/evolution
+      - DATABASE_CONNECTION_URI=postgresql://postgres:SENHA@postgres:5432/evolution
       # Identificador da Evolution quando usa 1 banco de dados para várias instâncias
       - DATABASE_CONNECTION_CLIENT_NAME=evolution_v2
       # Habilita se Deseja Salvar os Dados da Instância
-      - DATABASE_SAVE_DATA_INSTANCE=true # Obrigatório
+      - DATABASE_SAVE_DATA_INSTANCE=true
       # Habilita se Deseja Salvar os Dados de Mensagens
-      - DATABASE_SAVE_DATA_NEW_MESSAGE=true # Opcional 80% dos casos deixar false principalmente se não tiver um sistema de limpeza de dados antigos
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
       # Habilita se Deseja Salvar os Dados de Mensagens
-      - DATABASE_SAVE_MESSAGE_UPDATE=true # Opcional relacionado com o acima se o de cima for false deixa esse false também
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
       # Habilita se Deseja Salvar os Dados de Contatos
-      - DATABASE_SAVE_DATA_CONTACTS=true # Recomnendado se usar o chatwoot ele já faz isso
+      - DATABASE_SAVE_DATA_CONTACTS=true
       # Habilita se Deseja Salvar os Dados de Chats
-      - DATABASE_SAVE_DATA_CHATS=true # Opcional é quase inútil se usar o chatwoot ele já faz isso
+      - DATABASE_SAVE_DATA_CHATS=true
       # Habilita se Deseja Salvar os Dados de Labels
-      - DATABASE_SAVE_DATA_LABELS=true # Opcional se usar o chatwoot ele já faz isso
+      - DATABASE_SAVE_DATA_LABELS=true
       # Habilita se Deseja Salvar o Historico de Dados
-      - DATABASE_SAVE_DATA_HISTORIC=true # Opcional se usar o chatwoot ele já faz isso
+      - DATABASE_SAVE_DATA_HISTORIC=true
+      # Habilita se Deseja Salvar resultado das validações de WhatsApp
+      - DATABASE_SAVE_IS_ON_WHATSAPP=true
+      # Quantidade de dias para salvar validações de WhatsApp
+      - DATABASE_SAVE_IS_ON_WHATSAPP_DAYS=7
+      # Habilita se Deseja usar marcar mensagens como deletadas ou
+      # realmente excluir (true = marca / false = exclui)
+      - DATABASE_DELETE_MESSAGE=true
       #########################################################
       #########################################################
       # Configurações dos Eventos via RabbitMQ ################
@@ -132,7 +142,7 @@ services:
       # Configura a URL do WhatsApp Business Cloud
       - WA_BUSINESS_URL=https://graph.facebook.com
       # Configura a Versão do WhatsApp Business Cloud
-      - WA_BUSINESS_VERSION=v20.0
+      - WA_BUSINESS_VERSION=v23.0
       # Configura o Idioma do WhatsApp Business Cloud
       - WA_BUSINESS_LANGUAGE=pt_BR
       #########################################################
@@ -141,13 +151,11 @@ services:
       # Método não Recomendado. Usar fila com RabbitMQ ########
       #########################################################
       # Habilita a conexão com o Webhook Global
-      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_ENABLED=false
       # Configura a URL do Webhook Global
-      - WEBHOOK_GLOBAL_URL='https://webhooks.codesefaz.local'
+      - WEBHOOK_GLOBAL_URL=''
       # Configura os Eventos do Webhook Global
-      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
-      # Configura os eventos do Webhook Global
-      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
       #########################################################
       #########################################################
       # Configurações do Typebot ##############################
@@ -172,6 +180,7 @@ services:
       - CHATWOOT_MESSAGE_READ=true
       # Configura o URI do Banco de Dados do Chatwoot para Importação (opcional)
       - CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=postgresql://postgres:SENHA@postgres:5432/chatwoot?sslmode=disable
+      # Configura se vai importar mídias mesmo sem o arquivo disponível
       - CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE=true
       #########################################################
       #########################################################
@@ -179,7 +188,7 @@ services:
       #########################################################
       #########################################################
       # Habilita a conexão com o Open Ai
-      - OPENAI_ENABLED=false
+      - OPENAI_ENABLED=true
       # Configura a Chave de Acesso do Open Ai
       - OPENAI_API_KEY_GLOBAL=
       #########################################################
@@ -188,7 +197,28 @@ services:
       #########################################################
       #########################################################
       # Habilita a conexão com o Dify AI
-      - DIFY_ENABLED=false
+      - DIFY_ENABLED=true
+      #########################################################
+      #########################################################
+      # Configurações do Flowise AI ###########################
+      #########################################################
+      #########################################################
+      # Habilita a conexão com o Flowise AI
+      - FLOWISE_ENABLED=true
+      #########################################################
+      #########################################################
+      # Configurações do N8N Chat #############################
+      #########################################################
+      #########################################################
+      # Habilita a conexão com o N8N Chat
+      - N8N_ENABLED=true
+      #########################################################
+      #########################################################
+      # Configurações do Evo AI ###############################
+      #########################################################
+      #########################################################
+      # Habilita a conexão com a Evo AI
+      - EVOAI_ENABLED=true
       #########################################################
       #########################################################
       # Configurações do Cache da API #########################
@@ -200,6 +230,8 @@ services:
       - CACHE_REDIS_URI=redis://redis:6379/1
       # Configura o Prefixo da Chave do Redis
       - CACHE_REDIS_PREFIX_KEY=evolution_v2
+      # Configura o tempo de vida dos dados (604800 = 7 dias)
+      - CACHE_REDIS_TTL=604800
       # Configura se vai Salvar as Instâncias no Redis
       - CACHE_REDIS_SAVE_INSTANCES=true
       # Configura se vai Salvar os Dados da Instância no Redis
@@ -223,6 +255,8 @@ services:
       - S3_ENDPOINT=files.site.com
       # Configura se vai Usar SSL no S3
       - S3_USE_SSL=true
+      # Configura a Região do S3
+      - S3_REGION=us-east-1
     # Modo de Deploy da Aplicação
     deploy:
       # Define o modo de deploy do container
@@ -252,11 +286,11 @@ services:
         # Habilita o Traefik para o Evolution
         - traefik.enable=true
         # Define as regras de roteamento do Traefik para o Evolution
-        - traefik.http.routers.evolution_v2.rule=Host(`evo.codesefaz.local`)
-        # certificado TSL
-        - traefik.http.routers.evolution_v2.tls=true
+        - traefik.http.routers.evolution_v2.rule=Host(`evo.agenciasynca.com.br`)
         # Define o entrypoint do Traefik para o Evolution
         - traefik.http.routers.evolution_v2.entrypoints=websecure
+        # Define o certificado do Traefik para o Evolution
+        - traefik.http.routers.evolution_v2.tls.certresolver=letsencryptresolver
         # Define o serviço do Traefik para o Evolution
         - traefik.http.routers.evolution_v2.service=evolution_v2
         # Define o middleware do Traefik para o Evolution para Habilitar WebSockets

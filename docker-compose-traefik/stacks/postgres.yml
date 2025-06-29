@@ -1,0 +1,31 @@
+version: "3.7"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: "postgres" 
+    restart: unless-stopped
+    networks:
+      network_compose_public:
+    entrypoint: docker-entrypoint.sh
+    command:
+      [
+        "postgres", # O comando 'postgres' é executado
+        "--max_connections=200", # Define o número máximo de conexões
+        "--wal_level=minimal", # Nível de logging para o Write-Ahead Log (WAL)
+        "--max_wal_senders=0", # Número máximo de processos de envio de WAL
+        "--port=5432" # Porta interna do PostgreSQL
+      ]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=KR0k249haJgXCXcxSSwo 
+      - POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256" 
+
+volumes:
+  postgres_data:
+    name: postgres_data 
+
+networks:
+  network_compose_public:
+    name: network_compose_public 
+    driver: bridge

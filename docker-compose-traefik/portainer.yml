@@ -1,0 +1,48 @@
+version: '3.7'
+
+services:
+  portainer:
+    image: portainer/portainer-ce:sts # Usando a versão CE mais recente, ou 'sts' se preferir a Stable-Train
+    container_name: "portainer"
+    restart: unless-stopped # Garante que o Portainer sempre reinicie com o Docker
+    command: -H unix:///var/run/docker.sock # Conecta o Portainer ao socket Docker local
+    networks:
+      network_compose_public: # Conecta o Portainer à rede pública do Traefik
+        aliases:
+          - painel.${DOCKER_BASE_URL} # Alias para o Portainer na rede (útil para comunicação interna)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw # Monta o socket Docker para o Portainer
+      - portainer_data:/data # Volume persistente para os dados do Portainer
+    labels:
+      # --- Configurações Gerais do Traefik para o Portainer ---
+      - "traefik.enable=true" # Habilita o Traefik para descobrir e rotear este serviço
+      - "traefik.docker.network=network_compose_public" # Define a rede Docker onde o Traefik irá operar para este serviço
+      - "traefik.http.routers.portainer.priority=1" # Prioridade mais alta para este roteador (garante que ele seja avaliado antes do http-catchall do Traefik)
+
+      # --- Roteamento HTTPS (Principal Acesso ao Portainer) ---
+      # Define o roteador para o tráfego HTTPS na porta 443
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.rule=Host(`painel.${DOCKER_BASE_URL}`)"
+      - "traefik.http.routers.portainer.tls=true" # Habilita TLS (HTTPS) para este roteador
+      # O Traefik usará o certificado padrão do `traefik-ssl.toml` (definido no Traefik)
+
+      # --- Configuração do Serviço de Balanceamento de Carga ---
+      # Associa o roteador 'portainer' ao serviço 'portainer' no Traefik
+      - "traefik.http.routers.portainer.service=portainer" # Use um nome de serviço claro
+      # Define a porta interna do contêiner Portainer para o Traefik se conectar
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000" # Porta padrão do Portainer
+
+      # --- (Opcional) Autenticação Básica para o Portainer ---
+      # Se você quiser adicionar uma camada extra de segurança diretamente no Traefik para o Portainer
+      #- "traefik.http.routers.portainer.middlewares=portainer-auth"
+      #- "traefik.http.middlewares.portainer-auth.basicauth.users=user:$$apr1$$HtH.R/QZ$$tL9gS.I/8D.kY.62z1GjX0" # Substitua por seu hash de senha (gerar com `htpasswd -nb user password`)
+
+networks:
+  network_compose_public:
+    external: true
+    attachable: true
+    name: network_compose_public
+
+volumes:
+  portainer_data:
+    name: portainer_data

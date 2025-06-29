@@ -1,0 +1,84 @@
+version: '3.7'
+
+services:
+  traefik:
+    image: traefik:v2.11.3 # Usando a versão do primeiro stack, mais atualizada.
+    container_name: "traefik"
+    restart: unless-stopped
+    command:
+      # Habilita o dashboard da API do Traefik
+      - "--api.dashboard=true"
+      # Habilita o provedor Docker
+      - "--providers.docker=true"
+      # Por padrão, os serviços não são expostos pelo Traefik, precisam de labels explícitas
+      - "--providers.docker.exposedbydefault=false"
+      # Define a rede que o Traefik usará para se comunicar com os serviços Docker
+      - "--providers.docker.network=network_compose_public"
+      # Define os entrypoints para HTTP (porta 80) e HTTPS (porta 443)
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Redireciona automaticamente todo tráfego HTTP para HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      # Habilita o provedor de arquivos para carregar certificados e configurações TLS
+      - --providers.file.filename=/root/.config/ssl.toml
+      # Configuração de logs para Traefik
+      - "--log.level=INFO" # Nível de log INFO para produção, DEBUG para desenvolvimento
+      - "--log.format=common"
+      - "--log.filePath=/var/log/traefik/traefik.log"
+      # Configuração de logs de acesso
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+    networks:
+      network_compose_public:
+        aliases:
+          - dashboard.${DOCKER_BASE_URL} # Alias para o dashboard Traefik
+    ports:
+      # Mapeia as portas 80 e 443 do host para o contêiner Traefik
+      - '80:80'
+      - '443:443'
+      # Porta para o dashboard do Traefik (não exposta publicamente, acessível internamente via alias)
+      # - '8080:8080' # Expondo a porta do dashboard para acesso direto se necessário (remova em produção)
+    volumes:
+      # Monta o socket Docker para que o Traefik possa descobrir serviços
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Monta o arquivo de configuração com a lista de certificados TLS
+      - ./traefik-ssl.toml:/root/.config/ssl.toml
+      # Monta a pasta que contém os certificaos para https.
+      - ./certs/:/certs/
+      # Volume para persistir logs (opcional, pode ser um bind mount para um diretório no host)
+      - traefik_logs:/var/log/traefik
+    labels:
+      # Habilita o Traefik para este serviço (o próprio Traefik)
+      - "traefik.enable=true"
+      
+      # Middleware para redirecionamento HTTP para HTTPS (definido no próprio Traefik)
+      # O nome 'redirect-https' com as labels do próprio Traefik o torna disponível como 'redirect-https@docker'
+      - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
+
+      # Roteador HTTP para redirecionar todo o tráfego HTTP para HTTPS
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-https@docker"
+      - "traefik.http.routers.http-catchall.priority=1" # Prioridade mais baixa para catch-all
+
+      # Roteador para o Dashboard do Traefik (HTTPS)
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`dashboard.${DOCKER_BASE_URL}`)"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      # Aponta o roteador do dashboard para o serviço de API interna do Traefik (porta 8080)
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      # Habilita a autenticação básica para o dashboard (altamente recomendado para produção)
+      #- "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+      #- "traefik.http.middlewares.traefik-auth.basicauth.users=user:$$apr1$$HtH.R/QZ$$tL9gS.I/8D.kY.62z1GjX0" # Substitua por seu hash de senha
+
+volumes:
+  traefik_logs: # Volume para persistir os logs do Traefik
+    driver: local
+
+networks:
+  network_compose_public:
+    name: network_compose_public
+    driver: bridge

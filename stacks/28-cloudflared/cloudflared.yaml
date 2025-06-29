@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  cloudflared:
+    # Define a imagem do container
+    image: cloudflare/cloudflared:latest
+    # Define a rede que o container vai utilizar
+    networks:
+      - network_swarm_public
+    command: tunnel --no-autoupdate --protocol h2mux run --token
+    # Define o modo de deploy do cloudflared
+    deploy:
+      # o modo global faz com que o serviço seja executado em todos os nós do cluster
+      mode: global
+
+networks:
+  network_swarm_public:
+    name: network_swarm_public
+    external: true
