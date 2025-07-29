@@ -111,3 +111,44 @@ assim como para usar o HTTP request também pode usar tanto o nome do container 
 [http://evo.codesefaz.local:8080/message/sendText/robonildo](http://evo.codesefaz.local:8080/message/sendText/robonildo)
 
 o nome do container da evolution api é **evolution_v1** e a porta usada no evolution api é **8080**
+
+
+# Instalação do pgadmin
+
+usando a stack do pgadmin, lembre-se de adicionar no arquivo **hosts** 192.168.18.5 pgadmin.codesefaz.local para funcionar e adicioanr o stack no portainer com a variável de ambiente **DOCKER_BASE_URL**
+
+depois disso acesse [https://pgadmin.codesefaz.local](https://pgadmin.codesefaz.local) para abrir o pgadmin e se conectar com o banco do postgres
+  - Na aba geral adicione um nome ( postgres )
+  - Na aba conexão adicione um host name/adress ( postgres )
+  - Em username é o username do postgres ( postgres - como padrão)
+  - Em senha adicione a senha usada na instalação do postgres
+
+# para fazer a instalação do chatwoot
+  - ## resquisitos
+    - postgres
+    - pgvector ( extensão para o postgres )
+    - redis
+
+Faça a instalação do postgres com o pgvector usando a stack **postgres-pgvector.yml** adicionando a variável de ambiente **POSTGRES_PASSWORD** no portainer, depois de adicionar o stack no portainer acesse o terminal dele e digite
+```bash
+psql -h postgres_pgvector -U postgres
+# Quando o psql pedir a senha, digite a CHATWOOT_POSTGRES_PASSWORD que você definiu no .env do seu chatwoot-postgres
+postgres=# CREATE DATABASE chatwoot;
+CREATE EXTENSION vector;
+\q
+exit
+```
+
+Vamos abrir o pgAdmin e em **servers -> postegres -> Banco de dados** clica com o botão direito em *Banco de dados* para adicionar um novo banco de dados e o nome do banco pode ser **chatwoot** e **salvar**
+
+A instalação dos stacks são feitos usando o **chatwoot-admin.yml** e **chatwoot-sidekiq.yml**
+
+para isso você precisa configurar as variáveis de ambiente do chatwoot-admin e depois copia e cola no chatwoot-sidekiq
+
+para fazer a instalação cria o **CNAME**, no caso de produção vai no **cloudflare**, mas no local usar o arquivo **hosts**
+
+agora crie o volume **chatwoot_data**, e então, no portainer adicione uma nova stack, copie e cole a stack do chatwoot-admin, adicione as variáveis de ambiente DOCKER_BASE_URL, SECRET_KEY_BASE e POSTGRES_PASSWORD e faça o deploy, quando o final do log * Listening on http://0.0.0.0:3000 então ele está funcionando
+
+depois da instalação do **chatwoot-admin** você precisa ir no portainer e acessar o console dele, no comand escolha /bin/sh e clicar em conect, no console cole o comando `bundle exec rails db:chatwoot_prepare` 
+
+depois de instalado faça a instação do sidekiq copie o stack no portainer e **lembre-se** de copiar as **variáveis de ambiente** do admin no sidekiq, adicionar as variáveis de ambiente no portainer (.env)

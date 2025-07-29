@@ -1,0 +1,40 @@
+version: "3.7"
+services:
+  # Novo nome do serviço para o PostgreSQL dedicado ao Chatwoot
+  postgres_pgvector:
+    # Imagem que já inclui a extensão pgvector
+    image: pgvector/pgvector:pg16
+    # Nome do container para fácil identificação
+    container_name: "postgres_pgvector"
+    restart: unless-stopped
+    networks:
+      # Conecta à mesma rede pública que o N8N e o Chatwoot
+      network_compose_public:
+    # Comando de inicialização do PostgreSQL
+    command:
+      [
+        "postgres",
+        "--max_connections=200",
+        "--wal_level=minimal",
+        "--max_wal_senders=0",
+        "--port=5432"
+      ]
+    volumes:
+      # Novo volume para os dados deste PostgreSQL dedicado
+      - postgres_pgvector_data:/var/lib/postgresql/data
+    environment:
+      # Senha para o usuário 'postgres' deste banco de dados.
+      # Use uma senha forte e diferente da do seu Postgres principal.
+      - POSTGRES_PASSWORD=${CHATWOOT_POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256"
+
+volumes:
+  # Definição do novo volume
+  postgres_pgvector_data:
+    name: postgres_pgvector_data
+
+networks:
+  # Referencia a rede externa que já está sendo usada pelo N8N e Chatwoot
+  network_compose_public:
+    name: network_compose_public
+    external: true

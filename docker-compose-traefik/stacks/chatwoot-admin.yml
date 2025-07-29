@@ -1,0 +1,186 @@
+##############
+#
+# Para configurar o chatwoot, execute o comando abaixo no console do container:
+#
+# bundle exec rails db:chatwoot_prepare
+#
+# Variáveis de Ambiente:
+#
+# https://www.chatwoot.com/docs/self-hosted/configuration/environment-variables
+#
+# Valores Padrão:
+# https://github.com/chatwoot/chatwoot/blob/develop/.env.example
+#
+#############
+
+version: '3.7'
+
+# Definição dos Serviços
+services:
+  # Definição do Nome do Serviço da Interface Web
+  chatwoot_admin:
+    # imagem oficial do chatwoot
+    # https://hub.docker.com/r/chatwoot/chatwoot/tags
+    image: chatwoot/chatwoot:v4.0.2-ce
+    # Define o nome do container (opcional, mas bom para organização)
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    # Reinicia o container a menos que seja parado explicitamente
+    restart: unless-stopped
+    # comando padrão para subir o servidor web
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    # entrypoint para configurar o aplicativo
+    entrypoint: docker/entrypoints/rails.sh
+    # configura os volumes do chatwoot
+    volumes:
+      # Os volumes externos (previamente criados ou gerenciados pelo Docker Compose)
+      - chatwoot_data:/app/storage # arquivos do usuário
+    # configura a rede do serviço
+    networks:
+      # Conecta à mesma rede pública que o seu chatwoot e Postgres
+      network_compose_public:
+        aliases:
+          - chat4.${DOCKER_BASE_URL}
+    # Configura as variáveis de ambiente do chatwoot
+    environment:
+      ##########################################
+      # Nome do Setup
+      ##########################################
+      - INSTALLATION_NAME=chatwoot
+      # Ambiente de Execução do Node
+      - NODE_ENV=production
+      # Ambiente de Execução do Rails
+      - RAILS_ENV=production
+      # Tipo de Instalação
+      - INSTALLATION_ENV=docker
+      # Chave de Segurança - **OBRIGATÓRIO: GERAR UMA CHAVE FORTE E COLOCAR NO .env**
+      # Exemplo: rails secret (se tiver Rails instalado) ou gerador online
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      # URL do Frontend - **AJUSTE PARA SUA URL LOCAL OU PÚBLICA**
+      # Se for local sem Traefik: http://localhost:3000
+      # Se for com Traefik: https://chat4.agenciasynca.com.br
+      - FRONTEND_URL=https://chat4.${DOCKER_BASE_URL}
+      # Configura o idioma padrão
+      # https://www.chatwoot.com/hc/user-guide/articles/1677695546-languages-supported-in-chatwoot
+      - DEFAULT_LOCALE=pt-BR
+      # Configura o SSL - **AJUSTE PARA 'false' se estiver usando HTTP localmente sem Traefik SSL**
+      - FORCE_SSL=true
+      # Configura a criação de novas contas
+      - ENABLE_ACCOUNT_SIGNUP=false
+      # Configura o Log
+      - RAILS_LOG_TO_STDOUT=true
+      # Configura o Avatar do Bot
+      - USE_INBOX_AVATAR_FOR_BOT=true
+      # Habilita o Relay Server para Push do Chatwoot Mobile
+      - ENABLE_PUSH_RELAY_SERVER=true
+      ##########################################
+      # Configura o Redis
+      ##########################################
+      # Configura o Redis (o nome do serviço 'redis' aqui se refere ao container de redis
+      # que você tem na sua stack do chatwoot ou em uma stack separada na mesma rede)
+      - REDIS_URL=redis://redis:6379
+      # Se você habilitou a senha do redis
+      # - REDIS_PASSWORD=
+      ##########################################
+      # Configura o Banco de Dados
+      ##########################################
+      # Configura o endereço do Postgres (o nome do serviço 'postgres' aqui se refere
+      # ao container de postgres que você tem na sua stack principal)
+      - POSTGRES_HOST=postgres_pgvector
+      # Configura o Usuário do Postgres
+      - POSTGRES_USERNAME=postgres
+      # Configura a Senha do Postgres - **OBRIGATÓRIO: COLOCAR NO .env A SENHA DO SEU POSTGRES**
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # Configura o Banco de Dados do Postgres
+      # **IMPORTANTE:** O Chatwoot precisa de seu próprio banco de dados, não use 'chatwoot_queue'
+      - POSTGRES_DATABASE=chatwoot # Nome padrão recomendado para Chatwoot
+      ##########################################
+      # Configurações do Email
+      ##########################################
+      # # Endereço de Remetente - **AJUSTE CONFORME SEU SETUP SMTP**
+      # - MAILER_SENDER_EMAIL=contato@promovaweb.com
+      # # Hostname do Provedor SMTP
+      # - SMTP_ADDRESS=smtp2http # Ou seu host SMTP real (ex: smtp.sendgrid.net)
+      # # Tipo de Autenticação
+      # - SMTP_AUTHENTICATION=plain
+      # # Domínio do SMTP
+      # - SMTP_DOMAIN=promovaweb.com
+      # # Habilita o uso de TLS no SMTP
+      # - SMTP_ENABLE_STARTTLS_AUTO=false # Ajuste para 'true' se seu SMTP usar STARTTLS
+      # # Configura a porta do SMTP
+      # - SMTP_PORT=25 # Ajuste para a porta do seu SMTP (ex: 587 para TLS/STARTTLS)
+      # # Usuário do SMTP - **AJUSTE E COLOQUE NO .env**
+      # - SMTP_USERNAME=${SMTP_USERNAME}
+      # # Senha do SMTP - **AJUSTE E COLOQUE NO .env**
+      # - SMTP_PASSWORD=${SMTP_PASSWORD}
+      ##########################################
+      # Configura o Object Storage Externo (Opcional, para anexos)
+      # Você pode usar STORAGE_TYPE=local para começar e usar o volume 'chatwoot_data'
+      ##########################################
+      # Seleciona o Tipo de Storage
+      # - ACTIVE_STORAGE_SERVICE=s3_compatible
+      # Nome do Bucket do Minio
+      # - STORAGE_BUCKET_NAME=chatwoot
+      # Access Key do Minio
+      # - STORAGE_ACCESS_KEY_ID=${STORAGE_ACCESS_KEY_ID}
+      # Secret Key do Minio
+      # - STORAGE_SECRET_ACCESS_KEY=${STORAGE_SECRET_ACCESS_KEY}
+      # Região
+      # - STORAGE_REGION=nyc3
+      # Endereço Público do Minio
+      # - STORAGE_ENDPOINT=https://s3.agenciasynca.com.br
+      # Força a usar o caminho na URL (obrigatório pro minio)
+      # - STORAGE_FORCE_PATH_STYLE=true
+      ##########################################
+      # Configura o Backend
+      ##########################################
+      # Configuraçoes de Concorrência do Sidekiq
+      - SIDEKIQ_CONCURRENCY=10
+      ##########################################
+      # Configurações de Escalabilidade
+      ##########################################
+      # Configura o Número de Workers do Puma
+      # A conta seria o número de (núcleos da CPU - 1)
+      # o valor 0 ativa somente 1 worker
+      - WEB_CONCURRENCY=0 # No Docker Compose, 0 geralmente significa usar o valor padrão ou 1 worker.
+      # Configura o Número Máximo de Threads
+      - RAILS_MAX_THREADS=5
+      ##########################################
+      # Configura API Server
+      ##########################################
+      - CW_API_ONLY_SERVER=false
+    # A seção 'deploy' é removida para Docker Compose (não é Swarm)
+    # As labels do Traefik são mantidas caso você tenha um Traefik rodando externamente
+    labels:
+      # Configura o Roteamento do Traefik
+      - traefik.enable=true
+      # Traefik deve se comunicar nesta rede
+      - traefik.docker.network=network_compose_public
+
+      # Define o enderço do chatwoot do chatwoot
+      - traefik.http.routers.chatwoot_admin.rule=Host(`chat4.${DOCKER_BASE_URL}`)
+      # Redireciona o endereço para HTTPS
+      - traefik.http.routers.chatwoot_admin.entrypoints=websecure
+      # Define o certificado SSL
+      - traefik.http.routers.chatwoot_admin.tls=true
+
+      # Define o serviço do chatwoot
+      - traefik.http.routers.chatwoot_admin.service=chatwoot_admin
+      # Define a porta do serviço do chatwoot
+      - traefik.http.services.chatwoot_admin.loadbalancer.server.port=3000
+      # Define o uso do Host Header
+      - traefik.http.services.chatwoot_admin.loadbalancer.passHostHeader=true
+
+      # Configura o Middleware do Traefik para trabalhar com SSL no Websockets
+      - traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
+      - traefik.http.routers.chatwoot_admin.middlewares=sslheader@docker
+
+# Definição dos Volumes
+volumes:
+  chatwoot_data:
+    name: chatwoot_data
+    external: true
+
+networks:
+  network_compose_public:
+    name: network_compose_public
+    external: true

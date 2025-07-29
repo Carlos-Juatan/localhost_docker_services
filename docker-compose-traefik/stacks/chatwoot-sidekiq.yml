@@ -1,0 +1,58 @@
+  version: "3.7"
+
+  # Este arquivo docker-compose.yml define o serviço Sidekiq do Chatwoot.
+  # Ele foi adaptado de um stack Docker Swarm para um ambiente Docker Compose (Docker Desktop).
+  #
+  # Para que este serviço funcione corretamente, ele precisa se conectar:
+  # - Ao seu serviço PostgreSQL (geralmente chamado 'postgres')
+  # - Ao seu serviço Redis (geralmente chamado 'redis')
+  # - Ao volume 'chatwoot_data' para armazenamento de arquivos
+  #
+  # Certifique-se de que esses serviços/recursos já estão rodando ou foram criados
+  # na mesma rede 'network_compose_public'.
+  #
+  # Variáveis de Ambiente:
+  # As variáveis marcadas com ${VARIAVEL} devem ser definidas em um arquivo .env
+  # na mesma pasta deste docker-compose.yml.
+  # Exemplo de .env:
+  # SECRET_KEY_BASE=SUA_CHAVE_SECRETA_MUITO_FORTE_AQUI
+  # POSTGRES_PASSWORD=SUA_SENHA_DO_POSTGRES
+  # SMTP_USERNAME=seu_usuario_smtp
+  # SMTP_PASSWORD=sua_senha_smtp
+  #
+  #############
+
+  # Definição dos Serviços
+  services:
+    # Definição do Nome do Serviço de Background (Sidekiq)
+    chatwoot_sidekiq:
+      # imagem oficial do chatwoot
+      # https://hub.docker.com/r/chatwoot/chatwoot/tags
+      image: chatwoot/chatwoot:v4.0.2-ce
+      # Define o nome do container (opcional, mas bom para organização)
+      hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+      # Reinicia o container a menos que seja parado explicitamente
+      restart: unless-stopped
+      # comando padrão para subir o servidor Sidekiq
+      command: bundle exec sidekiq -C config/sidekiq.yml
+      # configura os volumes do chatwoot (compartilhado com chatwoot_admin)
+      volumes:
+        - chatwoot_data:/app/storage # arquivos do usuário
+      # configura a rede do serviço
+      networks:
+        # Conecta à mesma rede pública que o seu N8N, Postgres e chatwoot_admin
+        network_compose_public:
+      # Configura as variáveis de ambiente do chatwoot
+      environment:
+
+  # Definição dos Volumes
+  volumes:
+    chatwoot_data:
+      name: chatwoot_data
+      external: true
+
+  # Definição das Redes
+  networks:
+    network_compose_public:
+      name: network_compose_public
+      external: true

@@ -28,4 +28,4 @@ volumes:
 networks:
   network_compose_public:
     name: network_compose_public 
-    driver: bridge
+    external: true

@@ -121,7 +121,7 @@ services:
       # Desabilita o recurso de tags de workflows (false = habilitado)
       - N8N_WORKFLOW_TAGS_DISABLED=false
       # Oculta a Tela de Informações de Uso do N8N
-      - N8N_HIDE_USAGE_PAGE=true
+      - N8N_HIDE_USAGE_PAGE=false
       #########################################################
       #########################################################
       #########################################################

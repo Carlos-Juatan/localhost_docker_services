@@ -34,6 +34,9 @@ services:
       network_compose_public:
         aliases:
           - dashboard.${DOCKER_BASE_URL} # Alias para o dashboard Traefik
+          - chat4.${DOCKER_BASE_URL}
+          - brow.${DOCKER_BASE_URL}
+          - evo.${DOCKER_BASE_URL}  
     ports:
       # Mapeia as portas 80 e 443 do host para o contêiner Traefik
       - '80:80'
@@ -73,6 +76,26 @@ services:
       # Habilita a autenticação básica para o dashboard (altamente recomendado para produção)
       #- "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
       #- "traefik.http.middlewares.traefik-auth.basicauth.users=user:$$apr1$$HtH.R/QZ$$tL9gS.I/8D.kY.62z1GjX0" # Substitua por seu hash de senha
+            
+      
+      # Você precisará de roteadores para Chatwoot, Baserow, Evolution API
+      # Exemplo para Chatwoot (certifique-se de ter as labels no serviço chatwoot_admin também!)
+      - "traefik.http.routers.chatwoot.entrypoints=websecure"
+      - "traefik.http.routers.chatwoot.rule=Host(`chat4.${DOCKER_BASE_URL}`)"
+      - "traefik.http.routers.chatwoot.tls=true"
+      - "traefik.http.routers.chatwoot.service=chatwoot_admin" # Nome do serviço do Chatwoot no docker-compose
+
+      # Exemplo para Baserow (certifique-se de ter as labels no serviço baserow também!)
+      - "traefik.http.routers.baserow.entrypoints=websecure"
+      - "traefik.http.routers.baserow.rule=Host(`brow.${DOCKER_BASE_URL}`)"
+      - "traefik.http.routers.baserow.tls=true"
+      - "traefik.http.routers.baserow.service=baserow" # Nome do serviço do Baserow no docker-compose
+
+      # Exemplo para Evolution API (se ela tiver um endpoint público)
+     # - "traefik.http.routers.evolution_v1.entrypoints=websecure"
+     # - "traefik.http.routers.evolution_v1.rule=Host(`evo.${DOCKER_BASE_URL}`)"
+     # - "traefik.http.routers.evolution_v1.tls=true"
+     # - "traefik.http.routers.evolution_v1.service=evolution_api" # Nome do serviço da Evolution API
 
 volumes:
   traefik_logs: # Volume para persistir os logs do Traefik
@@ -82,3 +105,4 @@ networks:
   network_compose_public:
     name: network_compose_public
     driver: bridge
+    external: true
