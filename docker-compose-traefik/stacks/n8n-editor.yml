@@ -7,11 +7,7 @@ services:
     restart: unless-stopped
     command: start # Inicia o serviço do editor
     networks:
-      network_compose_public:
-        aliases:
-          # O alias é útil para comunicação interna entre containers,
-          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
-          - workflows.${DOCKER_BASE_URL}
+      - network_compose_public
     environment:
       #########################################################
       # Documentação de Variáveis de Ambiente do N8N ##########
@@ -203,6 +199,11 @@ services:
       # Report de Erros Sentry
       # - N8N_SENTRY_DSN=
       # - N8N_FRONTEND_SENTRY_DSN=
+
+      # configuração de certificado
+      - NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/rootCA.pem
+    volumes:
+      - ca_certs_volume:/usr/local/share/ca-certificates/:ro
     # Configura o Modo de Deploy da Aplicação
     deploy:
       # O editor será executado no modo de replicação
@@ -247,6 +248,11 @@ services:
       - traefik.http.services.n8n_editor.loadbalancer.server.port=5678
       # Define o uso do Host Header
       - traefik.http.services.n8n_editor.loadbalancer.passHostHeader=true
+
+volumes:
+  ca_certs_volume:
+    name: ca_certs_volume
+    external: true
 
 networks:
   network_compose_public:

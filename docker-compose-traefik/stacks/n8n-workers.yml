@@ -7,11 +7,7 @@ services:
     restart: unless-stopped
     command: worker --concurrency=10 # comando padrão para subir o servidor web
     networks:
-      network_compose_public:
-        aliases:
-          # O alias é útil para comunicação interna entre containers,
-          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
-          - workflows.${DOCKER_BASE_URL}
+      - network_compose_public
     environment:
       
     # Configura o Modo de Deploy da Aplicação
@@ -38,6 +34,7 @@ services:
         order: start-first
         # Configura a ação em caso de falha
         failure_action: rollback
+
 networks:
   network_compose_public:
     name: network_compose_public

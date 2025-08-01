@@ -5,10 +5,7 @@ services:
     container_name: "pgadmin"
     restart: unless-stopped
     networks:
-      # Conecte-se à mesma rede do seu serviço Postgres
-      network_compose_public:
-        aliases:
-          - pgadmin.${DOCKER_BASE_URL}
+      - network_compose_public
     # ports:
     #   # Mapeie a porta 80 do contêiner para uma porta no seu host (ex: 8080)
     #   - "8080:80"
@@ -16,9 +13,13 @@ services:
       # Credenciais de login para o pgAdmin (NÃO são as credenciais do Postgres)
       PGADMIN_DEFAULT_EMAIL: "admin@gmail.com" # Altere para o seu e-mail
       PGADMIN_DEFAULT_PASSWORD: "rQhNep96o8Ha5oAxmuTq" # Altere para uma senha forte
+      
+      # configuração de certificado
+      NODE_EXTRA_CA_CERTS: "/usr/local/share/ca-certificates/rootCA.pem"
     volumes:
       # Para persistir as configurações e bancos de dados registrados no pgAdmin
       - pgadmin_data:/var/lib/pgadmin
+      - ca_certs_volume:/usr/local/share/ca-certificates/:ro
     labels:
       # --- Configurações Traefik para pgadmin ---
       - "traefik.enable=true" # Habilita o Traefik para este serviço
@@ -39,6 +40,9 @@ services:
 volumes:
   pgadmin_data:
     name: pgadmin_data
+  ca_certs_volume:
+    name: ca_certs_volume
+    external: true
 
 networks:
   network_compose_public:

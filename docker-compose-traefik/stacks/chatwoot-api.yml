@@ -1,0 +1,89 @@
+##############
+#
+# Para configurar o chatwoot, execute o comando abaixo no console do container:
+#
+# bundle exec rails db:chatwoot_prepare
+#
+# Variáveis de Ambiente:
+#
+# Lembre-se de configurar a variável CW_API_ONLY_SERVER=true para desabilitar a interface web
+#
+# https://www.chatwoot.com/docs/self-hosted/configuration/environment-variables
+#
+# Valores Padrão:
+# https://github.com/chatwoot/chatwoot/blob/develop/.env.example
+#
+#############
+
+version: "3.7"
+
+# Definição dos Serviços
+services:
+  # Definição do Nome do Serviço da Interface Web
+  chatwoot_api:
+    # imagem oficial do chatwoot
+    # https://hub.docker.com/r/chatwoot/chatwoot/tags
+    image: chatwoot/chatwoot:v4.0.2-ce
+    # Define o hotname do container
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    # comando padrão para subir o servidor web
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    # entrypoint para configurar o aplicativo
+    entrypoint: docker/entrypoints/rails.sh
+    # configura os volumes do chatwoot
+    # configura a rede do serviço
+    networks:
+      - network_compose_public
+    # Configura as variáveis de ambiente do chatwoot
+    environment:
+
+    # mudar a variável CW_API_ONLY_SERVER para true depois de copiar as vairáveis do chatwoot-admin
+
+    volumes:
+      - chatwoot_data:/app/storage # arquivos do usuário
+      - ca_certs_volume:/usr/local/share/ca-certificates/:ro
+      
+    deploy:
+      # Configura o modo de deploy
+      mode: replicated
+      # Configura o numero de replicas
+      replicas: 1
+      # Limitação
+      resources:
+        limits:
+          # Define a quantidade de CPU para o CodeChat para evitar travamento do Host
+          cpus: "1"
+          # Define a quantidade de RAM para o CodeChat para evitar travamento do Host
+          memory: 1024M
+    labels:
+      # Configura o Roteamento do Traefik
+      - traefik.enable=true # habilita o traefik
+      # Configura o Roteamento do Traefik para o Chatwoot
+      - traefik.http.routers.chatwoot_api.rule=Host(`chat4-api.${DOCKER_BASE_URL}`)
+      # Define o tipo de entrada para HTTPS
+      - traefik.http.routers.chatwoot_api.entrypoints=websecure
+      # Define o certificado
+      - traefik.http.routers.chatwoot_api.tls=true
+      # Define o serviço do Chatwoot
+      - traefik.http.routers.chatwoot_api.service=chatwoot_api
+      # Define a porta do Chatwoot
+      - traefik.http.services.chatwoot_api.loadbalancer.server.port=3000
+      # Define os Headers do Chatwoot
+      - traefik.http.services.chatwoot_api.loadbalancer.passhostheader=true
+      # Configura o Middleware do Traefik para trabalhar com SSL no Websockets
+      - traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
+      - traefik.http.routers.chatwoot_api.middlewares=sslheader@docker
+
+# Definição dos Volumes
+volumes:
+  chatwoot_data:
+    name: chatwoot_data
+    external: true
+  ca_certs_volume:
+    name: ca_certs_volume
+    external: true
+
+networks:
+  network_compose_public:
+    name: network_compose_public
+    external: true

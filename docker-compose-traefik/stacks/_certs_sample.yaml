@@ -1,0 +1,16 @@
+services:
+  sample:
+    environment:
+      # Essa linha pode ser uma ou outra dependendo do sistema linux instalado no container
+      - NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/rootCA.pem
+      # ou
+      - SSL_CERT_FILE=/usr/local/share/ca-certificates/rootCA.pem
+      
+    # ...
+    volumes:
+      - ca_certs_volume:/usr/local/share/ca-certificates/:ro
+
+volumes:
+  ca_certs_volume:
+    name: ca_certs_volume
+    external: true

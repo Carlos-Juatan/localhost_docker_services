@@ -33,10 +33,13 @@ services:
     networks:
       network_compose_public:
         aliases:
-          - dashboard.${DOCKER_BASE_URL} # Alias para o dashboard Traefik
-          - chat4.${DOCKER_BASE_URL}
-          - brow.${DOCKER_BASE_URL}
-          - evo.${DOCKER_BASE_URL}  
+          - brow.${DOCKER_BASE_URL} 	# para o baserow
+          - workflows.${DOCKER_BASE_URL} 	# para o n8n editor
+          - webhooks.${DOCKER_BASE_URL} 	# para o n8n webhook
+          - evo.${DOCKER_BASE_URL} 	# para a evolution api
+          - chat4.${DOCKER_BASE_URL} 	# para o chatwoot
+          - chat4-api${DOCKER_BASE_URL} # para a api do chatwoot
+          
     ports:
       # Mapeia as portas 80 e 443 do host para o contêiner Traefik
       - '80:80'

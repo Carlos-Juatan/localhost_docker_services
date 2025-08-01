@@ -6,11 +6,7 @@ services:
     container_name: baserow
     restart: unless-stopped # Garante que o Baserow reinicie automaticamente
     networks:
-      network_compose_public:
-        aliases:
-          # O alias é útil para comunicação interna entre containers,
-          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
-          - brow.${DOCKER_BASE_URL}
+      - network_compose_public
     environment:
       # --- Configurações de URL Pública para o Baserow ---
       # Crucial para o Baserow gerar links corretos e lidar com redirecionamentos.
@@ -34,8 +30,12 @@ services:
       # Adicione outras variáveis de ambiente do Baserow conforme sua necessidade.
       # Por exemplo, para ajustar o tamanho máximo de upload de arquivos:
       # - BASEROW_FILE_UPLOAD_SIZE_LIMIT_MB=20 # 20MB
+
+      # configuração de certificado
+      - NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/rootCA.pem
     volumes:
       - baserow_data:/baserow/data # Volume persistente para os dados do Baserow
+      - ca_certs_volume:/usr/local/share/ca-certificates/:ro
     labels:
       # --- Configurações Traefik para Baserow ---
       - "traefik.enable=true" # Habilita o Traefik para este serviço
@@ -64,6 +64,9 @@ services:
 volumes:
   baserow_data:
     name: baserow_data # Nome do volume para consistência
+  ca_certs_volume:
+    name: ca_certs_volume
+    external: true
 
 networks:
   network_compose_public:

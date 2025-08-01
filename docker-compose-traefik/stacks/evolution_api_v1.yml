@@ -15,14 +15,8 @@ services:
     image: atendai/evolution-api:v1.8.7
     container_name: "evolution_v1"
     restart: unless-stopped
-    volumes:
-      - evolution_instances:/evolution/instances
     networks:
-      network_compose_public:
-        aliases:
-          # O alias é útil para comunicação interna entre containers,
-          # mas o acesso externo será via Traefik e DOCKER_BASE_URL
-          - evo.${DOCKER_BASE_URL}
+      - network_compose_public
     environment:
       # Habilitar o cache Redis
       - CACHE_REDIS_ENABLED=true
@@ -82,6 +76,12 @@ services:
       - AUTHENTICATION_API_KEY=${GLOBAL_API_KEY} # Preencha com sua chave de API
       # Configura a exibição da Chave de Autenticação na Listagem de Instâncias
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+
+      # configuração de certificado
+      - NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/rootCA.pem
+    volumes:
+      - evolution_instances:/evolution/instances
+      - ca_certs_volume:/usr/local/share/ca-certificates/:ro
     labels:
       - traefik.enable=true # Habilita o Traefik para descobrir e rotear este serviço
       - traefik.docker.network=network_compose_public # Traefik deve se comunicar nesta rede
@@ -101,6 +101,9 @@ services:
 volumes:
   evolution_instances:
     name: evolution_v1_data 
+  ca_certs_volume:
+    name: ca_certs_volume
+    external: true
 
 networks:
   network_compose_public:
